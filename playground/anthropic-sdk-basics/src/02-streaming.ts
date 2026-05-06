@@ -4,7 +4,7 @@ import Anthropic from "@anthropic-ai/sdk";
 const client = new Anthropic();
 
 async function main() {
-  const response = await client.messages.create({
+  const stream = client.messages.stream({
     model: "claude-haiku-4-5-20251001",
     max_tokens: 1024,
     system: "You are a concise technical writer. Answer in 3 sentences max.",
@@ -16,13 +16,19 @@ async function main() {
     ],
   });
 
-  // response.content is an array of content blocks (text, tool_use, etc.)
-  for (const block of response.content) {
-    if (block.type === "text") console.log(block.text);
+  // Iterate over SSE events as they arrive
+  for await (const event of stream) {
+    if (
+      event.type === "content_block_delta" &&
+      event.delta.type === "text_delta"
+    ) {
+      process.stdout.write(event.delta.text);
+    }
   }
 
-  console.log("\n--- usage ---");
-  console.log(response.usage);
+  const final = await stream.finalMessage();
+  console.log("\n\n--- usage ---");
+  console.log(final.usage);
 }
 
 main().catch((err) => {
