@@ -13,10 +13,12 @@
   "dependencies": {
     "@qdrant/js-client-rest": "^1.18.0",
     "dotenv": "^17.4.2",
-    "tiktoken": "^1.0.22"
+    "tiktoken": "^1.0.22",
+    "turndown": "^7.2.4"
   },
   "devDependencies": {
     "@types/node": "^25.8.0",
+    "@types/turndown": "^5.0.6",
     "tsx": "^4.22.1",
     "typescript": "^6.0.3"
   }
