@@ -44,6 +44,49 @@ server.registerTool(
   }
 );
 
+server.registerTool(
+  "list_issues",
+  {
+    description: "List issues for a GitHub repository. Can filter by state (open, closed, or all).",
+    inputSchema: {
+      owner: z.string().describe("Repository owner (username or org)"),
+      repo: z.string().describe("Repository name"),
+      state: z.enum(["open", "closed", "all"]).default("open").describe("Filter by issue state"),
+    },
+  },
+  async ({ owner, repo, state }) => {
+    try {
+      const { data } = await octokit.issues.listForRepo({
+        owner,
+        repo,
+        state,
+        per_page: 30,
+      });
+
+      // Octokit returns PRs in the issues endpoint too — filter them out
+      const issues = data.filter((i) => !i.pull_request);
+
+      if (issues.length === 0) {
+        return { content: [{ type: "text", text: `No ${state} issues in ${owner}/${repo}.` }] };
+      }
+
+      const text = issues
+        .map(
+          (i) =>
+            `#${i.number}: ${i.title} [${i.state}]\n` +
+            `  opened by ${i.user?.login ?? "unknown"} — ${new Date(i.created_at).toDateString()}\n` +
+            `  labels: ${i.labels.map((l: any) => (typeof l === "string" ? l : l.name)).join(", ") || "none"}\n` +
+            `  ${i.html_url}`
+        )
+        .join("\n\n");
+
+      return { content: [{ type: "text", text }] };
+    } catch (err: any) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }] };
+    }
+  }
+);
+
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
